@@ -31,48 +31,65 @@
 #include "Poco/Util/HelpFormatter.h"
 #include <iostream>
 
-// ./HTTPFormServer 9980 
-// http://localhost:9980/
+
+using Poco::Net::ServerSocket;    		//This class implements a TCP server socket
+
+using Poco::Net::HTTPRequestHandler;  	//The abstract base class for HTTPRequestHandlers created by HTTPServer.
+
+using Poco::Net::HTTPRequestHandlerFactory; //A factory for HTTPRequestHandler objects.
+
+using Poco::Net::HTTPServer; 			//A subclass of TCPServer that implements a full-featured multithreaded HTTP server.
+
+using Poco::Net::HTTPServerRequest; 	//This abstract subclass of HTTPRequest is used for representing server-side HTTP requests
+
+using Poco::Net::HTTPServerResponse; 	//This subclass of HTTPResponse is used for representing server-side HTTP responses
+
+using Poco::Net::HTTPServerParams;    //This class is used to specify parameters to both the HTTPServer, as well as to HTTPRequestHandler objects
+
+using Poco::Net::MessageHeader;			//A collection of name-value pairs that are used in various internet protocols like HTTP and SMTP.
+
+using Poco::Net::HTMLForm;				//HTMLForm is a helper class for working with HTML forms, both on the client and on the server side
+
+using Poco::Net::NameValueCollection;   //A collection of name-value pairs that are used in various internet protocols like HTTP and SMTP.
+
+using Poco::Util::ServerApplication;  //A subclass of the Application class that is used for implementing server applications
+
+using Poco::Util::Application; 		 //The Application class implements the main subsystem in a process
+
+using Poco::Util::Option;    //This class represents and stores the properties of a command line option
+
+using Poco::Util::OptionSet; //A collection of Option objects
+
+using Poco::Util::HelpFormatter; //This class formats a help message from an OptionSet.
+
+using Poco::CountingInputStream; //This stream counts all characters and lines going through it. This is useful for lexers and parsers that need to determine the current position in the stream.
+
+using Poco::NullOutputStream;  //This stream discards all characters written to it.
+
+using Poco::StreamCopier;     //This class provides static methods to copy the contents from one stream into another.
 
 
-using Poco::Net::ServerSocket;
-using Poco::Net::HTTPRequestHandler;
-using Poco::Net::HTTPRequestHandlerFactory;
-using Poco::Net::HTTPServer;
-using Poco::Net::HTTPServerRequest;
-using Poco::Net::HTTPServerResponse;
-using Poco::Net::HTTPServerParams;
-using Poco::Net::MessageHeader;
-using Poco::Net::HTMLForm;
-using Poco::Net::NameValueCollection;
-using Poco::Util::ServerApplication;
-using Poco::Util::Application;
-using Poco::Util::Option;
-using Poco::Util::OptionSet;
-using Poco::Util::HelpFormatter;
-using Poco::CountingInputStream;
-using Poco::NullOutputStream;
-using Poco::StreamCopier;
-
-
-class MyPartHandler: public Poco::Net::PartHandler
+class MyPartHandler: public Poco::Net::PartHandler  //creating class and inherting Poco::Net::PartHandler
 {
 public:
-	MyPartHandler():
+	MyPartHandler():  //constructor is automatically called when an object is created.
 		_length(0)
 	{
 	}
 	
-	void handlePart(const MessageHeader& header, std::istream& stream)
-	{
-		_type = header.get("Content-Type", "(unspecified)");
-		if (header.has("Content-Disposition"))
+	void handlePart(const MessageHeader& header, std::istream& stream)  //handlepart:- Information about the part can be extracted from the given message header
+	{															//messageheader:- A collection of name-value pairs that are used in various internet protocols like HTTP and SMTP
+		                                                        //stream:- The content of the part can be read from stream.
+		
+		_type = header.get("Content-Type", "(unspecified)"); //type storing what type of data is recived 
+		
+		if (header.has("Content-Disposition"))  //checking if the content is expected to be displayed inline in the browser
 		{
 			std::string disp;
-			NameValueCollection params;
-			MessageHeader::splitParameters(header["Content-Disposition"], disp, params);
-			_name = params.get("name", "(unnamed)");
-			_fileName = params.get("filename", "(unnamed)");
+			NameValueCollection params;  //A collection of name-value pairs that are used in various internet protocols like HTTP and SMTP.
+			MessageHeader::splitParameters(header["Content-Disposition"], disp, params);  //Splits the given string into a value and a collection of parameters
+			_name = params.get("name", "(unnamed)"); //get takes optonal header and body
+			_fileName = params.get("filename", "(unnamed)"); 
 		}
 		
 		CountingInputStream istr(stream);
@@ -110,14 +127,14 @@ private:
 
 
 class FormRequestHandler: public HTTPRequestHandler
-	/// Return a HTML document with the current date and time.
+	/// Return a HTML document 
 {
 public:
 	FormRequestHandler() 
 	{
 	}
 	
-	void handleRequest(HTTPServerRequest& request, HTTPServerResponse& response)
+	void handleRequest(HTTPServerRequest& request, HTTPServerResponse& response)  //handeling request and response
 	{
 		Application& app = Application::instance();
 		app.logger().information("Request from " + request.clientAddress().toString());
@@ -151,13 +168,14 @@ public:
 			"<form method=\"POST\" action=\"/form\" enctype=\"multipart/form-data\">\n"
 			"<input type=\"file\" name=\"file\" size=\"31\"> \n"
 			"<input type=\"submit\" value=\"Upload\">\n"
-			"</form>\n";
+			"</form>\n"
+			;
 			
 		ostr << "<h2>Request</h2><p>\n";
-		ostr << "Method: " << request.getMethod() << "<br>\n";
+		ostr << "Get or Post: " << request.getMethod() << "<br>\n";
 		ostr << "URI: " << request.getURI() << "<br>\n";
-		NameValueCollection::ConstIterator it = request.begin();
-		NameValueCollection::ConstIterator end = request.end();
+		NameValueCollection::ConstIterator it = request.begin(); //Returns an iterator pointing to the begin of the name-value pair collection.
+		NameValueCollection::ConstIterator end = request.end();  //Returns an iterator pointing to the end of the name-value pair collection.
 		for (; it != end; ++it)
 		{
 			ostr << it->first << ": " << it->second << "<br>\n";
@@ -197,7 +215,7 @@ public:
 	{
 	}
 
-	HTTPRequestHandler* createRequestHandler(const HTTPServerRequest& request)
+	HTTPRequestHandler* createRequestHandler(const HTTPServerRequest& request)  //Creates a new request handler for the given HTTP request.
 	{
 		return new FormRequestHandler;
 	}
@@ -224,18 +242,18 @@ class HTTPFormServer: public Poco::Util::ServerApplication
 	/// To test the FormServer you can use any web browser (http://localhost:9980/).
 {
 public:
-	HTTPFormServer(): _helpRequested(false)
+	HTTPFormServer(): _helpRequested(false)   //Creates the HTTPFormServer() This class handles command-line arguments
 	{
 	}
 	
-	~HTTPFormServer()
+	~HTTPFormServer()  //distroyes the HTTPFormserver()
 	{
 	}
 
 protected:
 	void initialize(Application& self)
 	{
-		loadConfiguration(); // load default configuration files, if present
+		loadConfiguration(); 	// load default configuration files, if present
 		ServerApplication::initialize(self);
 	}
 		
@@ -244,7 +262,7 @@ protected:
 		ServerApplication::uninitialize();
 	}
 
-	void defineOptions(OptionSet& options)
+	void defineOptions(OptionSet& options)   //defining the options for command-line
 	{
 		ServerApplication::defineOptions(options);
 		
@@ -254,7 +272,7 @@ protected:
 				.repeatable(false));
 	}
 
-	void handleOption(const std::string& name, const std::string& value)
+	void handleOption(const std::string& name, const std::string& value) //accepting options
 	{
 		ServerApplication::handleOption(name, value);
 
@@ -262,7 +280,7 @@ protected:
 			_helpRequested = true;
 	}
 
-	void displayHelp()
+	void displayHelp()  
 	{
 		HelpFormatter helpFormatter(options());
 		helpFormatter.setCommand(commandName());
@@ -284,7 +302,7 @@ protected:
 			// set-up a server socket
 			ServerSocket svs(port);
 			// set-up a HTTPServer instance
-			HTTPServer srv(new FormRequestHandlerFactory, svs, new HTTPServerParams);
+			HTTPServer srv(new FormRequestHandlerFactory, svs, new HTTPServerParams); //used to specify parameters to both the HTTPServer, as well as to HTTPRequestHandler objects
 			// start the HTTPServer
 			srv.start();
 			// wait for CTRL-C or kill
